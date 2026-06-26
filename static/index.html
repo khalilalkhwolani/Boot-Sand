@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم AlsManagerBot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f0c1b 0%, #150f2e 50%, #0d091a 100%);
+            --glass-bg: rgba(25, 18, 48, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.07);
+            --glass-highlight: rgba(255, 255, 255, 0.12);
+            --text-primary: #f3f0ff;
+            --text-secondary: #a59fc9;
+            --accent-purple: #7c4dff;
+            --accent-purple-glow: rgba(124, 77, 255, 0.4);
+            --accent-cyan: #00e5ff;
+            --accent-cyan-glow: rgba(0, 229, 255, 0.3);
+            --success-green: #00e676;
+            --danger-red: #ff1744;
+            --card-radius: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-purple) var(--glass-bg);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--glass-bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-purple);
+            border-radius: 10px;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Container */
+        .app-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(10, 6, 22, 0.2);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* ==================== SIDEBAR ==================== */
+        .sidebar {
+            width: 280px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 40px;
+            padding: 0 10px;
+        }
+
+        .brand-logo {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 0 15px var(--accent-purple-glow);
+        }
+
+        .brand-name h1 {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to left, #fff, var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-name p {
+            font-size: 11px;
+            color: var(--accent-cyan);
+            font-weight: 500;
+        }
+
+        .menu-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .menu-item i {
+            font-size: 18px;
+            width: 25px;
+            transition: transform 0.3s ease;
+        }
+
+        .menu-item:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .menu-item:hover i {
+            transform: scale(1.15);
+        }
+
+        .menu-item.active {
+            color: var(--text-primary);
+            background: linear-gradient(90deg, rgba(124, 77, 255, 0.15) 0%, rgba(0, 229, 255, 0.05) 100%);
+            border: 1px solid rgba(124, 77, 255, 0.25);
+            box-shadow: inset 0 0 12px rgba(124, 77, 255, 0.1);
+        }
+
+        .menu-item.active i {
+            color: var(--accent-cyan);
+            filter: drop-shadow(0 0 5px var(--accent-cyan-glow));
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 15px 10px 0 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .sys-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--danger-red);
+            box-shadow: 0 0 8px var(--danger-red);
+        }
+
+        .status-dot.active {
+            background-color: var(--success-green);
+            box-shadow: 0 0 10px var(--success-green);
+        }
+
+        /* ==================== MAIN CONTENT ==================== */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 100%;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .top-bar {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .top-bar h2 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .group-selector-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .group-selector-container label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        select.group-select {
+            background: rgba(18, 13, 38, 0.7);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 10px;
+            outline: none;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 200px;
+            transition: all 0.3s;
+        }
+
+        select.group-select:focus {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 10px var(--accent-purple-glow);
+        }
+
+        .content-body {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .content-body.active {
+            display: flex;
+        }
+
+        /* ==================== HOME / CONSOLE TAB ==================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(124, 77, 255, 0.2);
+        }
+
+        .stat-icon {
+            width: 55px;
+            height: 55px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--text-primary);
+        }
+
+        .stat-icon.purple {
+            background: rgba(124, 77, 255, 0.15);
+            border: 1px solid rgba(124, 77, 255, 0.2);
+            color: var(--accent-purple);
+        }
+
+        .stat-icon.cyan {
+            background: rgba(0, 229, 255, 0.15);
+            border: 1px solid rgba(0, 229, 255, 0.2);
+            color: var(--accent-cyan);
+        }
+
+        .stat-icon.green {
+            background: rgba(0, 230, 118, 0.15);
+            border: 1px solid rgba(0, 230, 118, 0.2);
+            color: var(--success-green);
+        }
+
+        .stat-info h3 {
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .stat-info p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .console-container {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            flex: 1;
+            min-height: 380px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .console-header h3 {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .console-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #fff;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00c853, #64dd17);
+            box-shadow: 0 4px 15px rgba(0, 200, 83, 0.3);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 4px 20px rgba(0, 200, 83, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #d50000, #ff1744);
+            box-shadow: 0 4px 15px rgba(213, 0, 0, 0.3);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 4px 20px rgba(213, 0, 0, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .console-body {
+            background: rgba(10, 6, 22, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            flex: 1;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            color: #00ff66;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            line-height: 1.6;
+        }
+
+        /* ==================== PROTECTION TAB ==================== */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .settings-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .settings-card h3 {
+            font-size: 16px;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .switch-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 10px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            transition: background 0.3s;
+        }
+
+        .switch-row:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .switch-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .switch-info p {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        /* Toggle Switch Styling */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #2c254e;
+            transition: .4s;
+            border-radius: 34px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 3px;
+            background-color: #fff;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-purple);
+            box-shadow: 0 0 10px var(--accent-purple-glow);
+        }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px var(--accent-purple);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .form-control {
+            background: rgba(18, 13, 38, 0.7);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 15px;
+            border-radius: 12px;
+            outline: none;
+            font-size: 14px;
+            transition: all 0.3s;
+            resize: vertical;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 10px var(--accent-purple-glow);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-purple), #90caf9);
+            box-shadow: 0 4px 15px var(--accent-purple-glow);
+            align-self: flex-start;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 4px 20px rgba(124, 77, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        /* ==================== TRIGGERS / AUTO-REPLY TAB ==================== */
+        .table-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
+            padding: 25px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .trigger-form-inline {
+            display: grid;
+            grid-template-columns: 2fr 3fr auto;
+            gap: 15px;
+            align-items: flex-end;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        @media (max-width: 768px) {
+            .trigger-form-inline {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Table Styling */
+        .responsive-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .responsive-table th {
+            color: var(--text-secondary);
+            font-weight: 700;
+            padding: 15px 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .responsive-table td {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+        }
+
+        .responsive-table tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-icon-danger {
+            background: rgba(255, 23, 68, 0.15);
+            color: var(--danger-red);
+            border: 1px solid rgba(255, 23, 68, 0.2);
+        }
+
+        .btn-icon-danger:hover {
+            background: var(--danger-red);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(255, 23, 68, 0.4);
+        }
+        
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        
+        .badge-warning {
+            background: rgba(255, 145, 0, 0.15);
+            color: #ff9100;
+            border: 1px solid rgba(255, 145, 0, 0.2);
+        }
+
+        /* Notifications Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: rgba(25, 18, 48, 0.9);
+            border: 1px solid var(--accent-purple);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out forwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Modal Popup styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(10, 6, 22, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-card {
+            background: rgba(20, 15, 38, 0.95);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            overflow: hidden;
+        }
+        .modal-overlay.active .modal-card {
+            transform: scale(1);
+        }
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+        .modal-close-btn:hover {
+            color: var(--danger-red);
+        }
+        .modal-body {
+            padding: 25px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .modal-group-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+        .modal-group-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(124, 77, 255, 0.3);
+        }
+        .modal-group-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .modal-group-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .modal-group-link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 0 10px var(--accent-purple-glow);
+            transition: transform 0.2s;
+        }
+        .modal-group-link-btn:hover {
+            transform: translateY(-2px);
+        }
+        .modal-group-link-btn.disabled {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+            box-shadow: none;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo"><i class="fa-solid fa-shield-halved"></i></div>
+                <div class="brand-name">
+                    <h1>مدير المجموعات</h1>
+                    <p>منصة الإشراف المتكاملة</p>
+                </div>
+            </div>
+            
+            <ul class="menu-list">
+                <li class="menu-item active" data-tab="home">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>الرئيسية والمراقبة</span>
+                </li>
+                <li class="menu-item" data-tab="protection">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>إعدادات الحماية</span>
+                </li>
+                <li class="menu-item" data-tab="triggers">
+                    <i class="fa-solid fa-message"></i>
+                    <span>الردود التلقائية</span>
+                </li>
+                <li class="menu-item" data-tab="logs">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <span>سجل الرقابة والتحذيرات</span>
+                </li>
+            </ul>
+            
+            <div class="sidebar-footer">
+                <div class="sys-status">
+                    <div class="status-dot" id="system-status-dot"></div>
+                    <span id="system-status-text">خادم الويب متصل</span>
+                </div>
+                <div class="sys-status" style="margin-top: 5px;">
+                    <i class="fa-solid fa-robot" style="font-size: 12px; width: 14px;"></i>
+                    <span id="active-bot-name">جاري جلب البوت...</span>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+            
+            <!-- TOP BAR -->
+            <header class="top-bar">
+                <h2 id="tab-title">الرئيسية والمراقبة</h2>
+                
+                <div class="group-selector-container" id="group-select-wrapper" style="display: none;">
+                    <label for="group-select"><i class="fa-solid fa-users"></i> المجموعة النشطة:</label>
+                    <select id="group-select" class="group-select" onchange="onGroupChanged()">
+                        <!-- المجموعات تملأ هنا ديناميكياً -->
+                    </select>
+                </div>
+            </header>
+            
+            <!-- TAB 1: HOME / CONSOLE -->
+            <div class="content-body active" id="tab-home">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon purple"><i class="fa-solid fa-users"></i></div>
+                        <div class="stat-info">
+                            <h3 id="stat-groups">0</h3>
+                            <p>المجموعات المراقبة</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon cyan"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <div class="stat-info">
+                            <h3 id="stat-warnings">0</h3>
+                            <p>التحذيرات النشطة</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green" id="bot-status-card-icon"><i class="fa-solid fa-circle-play"></i></div>
+                        <div class="stat-info">
+                            <h3 id="stat-bot-status">متوقف</h3>
+                            <p>حالة عمل البوت</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="console-container">
+                    <div class="console-header">
+                        <h3><i class="fa-solid fa-terminal" style="color: var(--accent-cyan);"></i> سجل عمليات البوت المباشر (Terminal Log)</h3>
+                        <div class="console-controls">
+                            <button class="btn btn-success" id="btn-start-bot" onclick="startBot()"><i class="fa-solid fa-play"></i> تشغيل البوت</button>
+                            <button class="btn btn-danger" id="btn-stop-bot" onclick="stopBot()"><i class="fa-solid fa-stop"></i> إيقاف البوت</button>
+                        </div>
+                    </div>
+                    <div class="console-body" id="console-output">جاري جلب سجل العمليات الحية للبوت...</div>
+                </div>
+            </div>
+            
+            <!-- TAB 2: PROTECTION SETTINGS -->
+            <div class="content-body" id="tab-protection">
+                <div class="settings-grid">
+                    
+                    <div class="settings-card">
+                        <h3><i class="fa-solid fa-shield-halved" style="color: var(--accent-purple);"></i> دروع الحماية النشطة</h3>
+                        
+                        <div class="switch-row">
+                            <div class="switch-info">
+                                <h4>منع الروابط (Anti-Link)</h4>
+                                <p>حذف أي رسالة تحتوي على روابط وموقع تيليجرام فوراً للعضو العادي.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="setting-anti-link" onchange="toggleSetting('anti_link')">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="switch-row">
+                            <div class="switch-info">
+                                <h4>منع الإعلانات والسبام (Anti-Spam)</h4>
+                                <p>تفعيل التصفية المحلية التلقائية للإعلانات والحلول التجارية.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="setting-anti-spam" onchange="toggleSetting('anti_spam')">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="switch-row">
+                            <div class="switch-info">
+                                <h4>فحص الذكاء الاصطناعي (Gemini AI)</h4>
+                                <p>إرسال الرسائل المشتبه بها إلى Gemini للتحقق الذكي من السياق والشتائم.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="setting-gemini" onchange="toggleSetting('gemini_enabled')">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="switch-row">
+                            <div class="switch-info">
+                                <h4>كابتشا الأعضاء الجدد (Captcha)</h4>
+                                <p>فرض كبتشا تحقق على العضو الجديد لمنع انضمام البوتات الترويجية.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="setting-captcha" onchange="toggleSetting('captcha_enabled')">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-card">
+                        <h3><i class="fa-solid fa-hands-clapping" style="color: var(--accent-cyan);"></i> الترحيب بالأعضاء الجدد</h3>
+                        
+                        <div class="switch-row">
+                            <div class="switch-info">
+                                <h4>تفعيل رسالة الترحيب</h4>
+                                <p>إرسال ترحيب منسق في المجموعة عند انضمام عضو حقيقي بنجاح.</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="setting-welcome-enabled" onchange="toggleSetting('welcome_enabled')">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="setting-welcome-msg">نص رسالة الترحيب المخصصة:</label>
+                            <textarea id="setting-welcome-msg" class="form-control" rows="4" placeholder="اكتب ترحيباً مميزاً بالأعضاء الجدد..."></textarea>
+                            <p style="font-size: 11px; color: var(--text-secondary);">استخدم <code style="color: var(--accent-cyan);">{name}</code> لوضع اسم العضو الجديد تلقائياً في الترحيب.</p>
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="saveWelcomeMessage()"><i class="fa-solid fa-floppy-disk"></i> حفظ رسالة الترحيب</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TAB 3: CUSTOM TRIGGERS -->
+            <div class="content-body" id="tab-triggers">
+                <div class="table-card">
+                    <h3><i class="fa-solid fa-comment-dots" style="color: var(--accent-purple);"></i> إضافة رد تلقائي ذكي</h3>
+                    
+                    <div class="trigger-form-inline">
+                        <div class="form-group">
+                            <label for="new-trigger-key">الكلمة المفتاحية (Keyword):</label>
+                            <input type="text" id="new-trigger-key" class="form-control" placeholder="مثال: موقع الكلية">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-trigger-val">الرد المخصص للبوت (Response Reply):</label>
+                            <input type="text" id="new-trigger-val" class="form-control" placeholder="تفضل رابط موقع الكلية الرسمي هو: ...">
+                        </div>
+                        <button class="btn btn-primary" onclick="addCustomTrigger()"><i class="fa-solid fa-plus"></i> إضافة الرد</button>
+                    </div>
+                    
+                    <h3><i class="fa-solid fa-table-list" style="color: var(--accent-cyan);"></i> الكلمات والردود المسجلة حالياً</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="responsive-table">
+                            <thead>
+                                <tr>
+                                    <th>الكلمة المفتاحية (Keyword)</th>
+                                    <th>الرد التلقائي (Response Reply)</th>
+                                    <th style="width: 100px; text-align: center;">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="triggers-table-body">
+                                <!-- تملأ الكلمات والردود هنا ديناميكياً -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TAB 4: AUDIT LOGS & WARNS -->
+            <div class="content-body" id="tab-logs">
+                <div class="settings-grid">
+                    
+                    <!-- سجل التحذيرات والمخالفات -->
+                    <div class="table-card">
+                        <h3><i class="fa-solid fa-triangle-exclamation" style="color: var(--danger-red);"></i> قائمة الأعضاء المحذرين بالمجموعة</h3>
+                        <div style="overflow-x: auto; max-height: 400px;">
+                            <table class="responsive-table">
+                                <thead>
+                                    <tr>
+                                        <th>معرف العضو (User ID)</th>
+                                        <th>معرف المجموعة</th>
+                                        <th style="text-align: center;">التحذيرات (Warnings)</th>
+                                        <th style="width: 100px; text-align: center;">التحكم</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="warnings-table-body">
+                                    <!-- تملأ تحذيرات الأعضاء هنا -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- سجل الرسائل الأخيرة -->
+                    <div class="table-card">
+                        <h3><i class="fa-solid fa-comment-medical" style="color: var(--accent-cyan);"></i> آخر الرسائل المستلمة والخاضعة للرقابة</h3>
+                        <div style="overflow-x: auto; max-height: 400px;">
+                            <table class="responsive-table">
+                                <thead>
+                                    <tr>
+                                        <th>اسم العضو</th>
+                                        <th>محتوى الرسالة</th>
+                                        <th>الوقت</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="message-logs-table-body">
+                                    <!-- تملأ سجلات الرسائل هنا -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+        </main>
+        
+    </div>
+
+    <!-- TOAST NOTIFICATIONS -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // المتغيرات العامة
+        let activeTab = 'home';
+        let groups = [];
+        let selectedGroupId = null;
+        let botInfo = null;
+        let logsInterval = null;
+
+        // تهيئة التطبيق عند فتح الصفحة
+        window.addEventListener('DOMContentLoaded', () => {
+            initTabs();
+            fetchStats();
+            fetchGroups();
+            
+            // تحديث السجلات والإحصائيات كل ثانيتين بشكل دوري
+            logsInterval = setInterval(() => {
+                fetchStats();
+                if (botInfo) {
+                    fetchBotLogs();
+                }
+                if (activeTab === 'logs') {
+                    fetchMessageLogs();
+                    fetchWarnings();
+                }
+            }, 2000);
+        });
+
+        // التعامل مع التبويبات والتنقل
+        function initTabs() {
+            const menuItems = document.querySelectorAll('.menu-item');
+            const tabBodies = document.querySelectorAll('.content-body');
+            const tabTitle = document.getElementById('tab-title');
+            const groupSelectWrapper = document.getElementById('group-select-wrapper');
+
+            menuItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const tabId = item.getAttribute('data-tab');
+                    activeTab = tabId;
+                    
+                    // تغيير التبويب النشط في القائمة
+                    menuItems.forEach(mi => mi.classList.remove('active'));
+                    item.classList.add('active');
+
+                    // إظهار التبويب النشط وإخفاء الباقي
+                    tabBodies.forEach(body => body.classList.remove('active'));
+                    document.getElementById(`tab-${tabId}`).classList.add('active');
+
+                    // تحديث عنوان الصفحة
+                    tabTitle.innerText = item.querySelector('span').innerText;
+
+                    // إظهار اختيار المجموعة فقط للتبويبات المخصصة للمجموعات (Protection, Triggers)
+                    if (tabId === 'protection' || tabId === 'triggers') {
+                        groupSelectWrapper.style.display = 'flex';
+                    } else {
+                        groupSelectWrapper.style.display = 'none';
+                    }
+
+                    // تحديث محتويات التبويب النشط
+                    if (tabId === 'protection') fetchGroupSettings();
+                    if (tabId === 'triggers') fetchGroupTriggers();
+                    if (tabId === 'logs') {
+                        fetchMessageLogs();
+                        fetchWarnings();
+                    }
+                });
+            });
+        }
+
+        // إشعارات التنبيه (Toast Notifications)
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            
+            let icon = '<i class="fa-solid fa-circle-check" style="color: var(--success-green);"></i>';
+            if (type === 'error') {
+                icon = '<i class="fa-solid fa-circle-exclamation" style="color: var(--danger-red);"></i>';
+                toast.style.borderColor = 'var(--danger-red)';
+            }
+            
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // جلب الإحصائيات العامة وحالة البوت
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats');
+                if (response.ok) {
+                    const stats = await response.json();
+                    
+                    document.getElementById('stat-groups').innerText = stats.total_groups;
+                    document.getElementById('stat-warnings').innerText = stats.total_warnings;
+                    
+                    const botStatusText = document.getElementById('stat-bot-status');
+                    const systemStatusDot = document.getElementById('system-status-dot');
+                    const activeBotName = document.getElementById('active-bot-name');
+                    const botStatusIcon = document.getElementById('bot-status-card-icon');
+                    
+                    botInfo = stats.active_bot;
+
+                    if (stats.bot_status === 'running') {
+                        botStatusText.innerText = 'يعمل حالياً';
+                        botStatusText.style.color = 'var(--success-green)';
+                        systemStatusDot.className = 'status-dot active';
+                        botStatusIcon.style.color = 'var(--success-green)';
+                        botStatusIcon.innerHTML = '<i class="fa-solid fa-circle-play"></i>';
+                        
+                        document.getElementById('btn-start-bot').disabled = true;
+                        document.getElementById('btn-stop-bot').disabled = false;
+                    } else {
+                        botStatusText.innerText = 'متوقف';
+                        botStatusText.style.color = 'var(--danger-red)';
+                        systemStatusDot.className = 'status-dot';
+                        botStatusIcon.style.color = 'var(--danger-red)';
+                        botStatusIcon.innerHTML = '<i class="fa-solid fa-circle-stop"></i>';
+                        
+                        document.getElementById('btn-start-bot').disabled = false;
+                        document.getElementById('btn-stop-bot').disabled = true;
+                    }
+
+                    if (botInfo) {
+                        activeBotName.innerText = `البوت النشط: ${botInfo.name}`;
+                    } else {
+                        activeBotName.innerText = 'لم يتم تسجيل توكن للبوت';
+                    }
+                }
+            } catch (error) {
+                console.error("فشل الاتصال بخادم الويب:", error);
+                document.getElementById('system-status-text').innerText = 'خادم الويب متوقف';
+                document.getElementById('system-status-dot').className = 'status-dot';
+            }
+        }
+
+        // جلب سجلات البوت
+        async function fetchBotLogs() {
+            if (!botInfo) return;
+            try {
+                const response = await fetch(`/api/bot/${botInfo.bot_id}/logs`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const consoleOutput = document.getElementById('console-output');
+                    consoleOutput.innerText = data.logs;
+                    // التمرير التلقائي لأسفل السجلات
+                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                }
+            } catch (error) {
+                console.error("فشل جلب السجلات:", error);
+            }
+        }
+
+        // تشغيل البوت
+        async function startBot() {
+            if (!botInfo) {
+                showNotification("يرجى إدخال توكن للبوت أولاً.", "error");
+                return;
+            }
+            try {
+                const response = await fetch(`/api/bot/${botInfo.bot_id}/start`, { method: 'POST' });
+                if (response.ok) {
+                    showNotification("تم إرسال أمر تشغيل البوت بنجاح.");
+                    fetchStats();
+                } else {
+                    showNotification("فشل تشغيل البوت.", "error");
+                }
+            } catch (error) {
+                showNotification("خطأ أثناء الاتصال بالسيرفر.", "error");
+            }
+        }
+
+        // إيقاف البوت
+        async function stopBot() {
+            if (!botInfo) return;
+            try {
+                const response = await fetch(`/api/bot/${botInfo.bot_id}/stop`, { method: 'POST' });
+                if (response.ok) {
+                    showNotification("تم إيقاف تشغيل البوت بنجاح.");
+                    fetchStats();
+                } else {
+                    showNotification("فشل إيقاف البوت.", "error");
+                }
+            } catch (error) {
+                showNotification("خطأ أثناء الاتصال بالسيرفر.", "error");
+            }
+        }
+
+        // جلب قائمة المجموعات
+        async function fetchGroups() {
+            try {
+                const response = await fetch('/api/groups');
+                if (response.ok) {
+                    groups = await response.json();
+                    const select = document.getElementById('group-select');
+                    select.innerHTML = '';
+                    
+                    if (groups.length === 0) {
+                        select.innerHTML = '<option value="">لا توجد مجموعات مسجلة</option>';
+                        selectedGroupId = null;
+                        return;
+                    }
+
+                    groups.forEach(g => {
+                        const opt = document.createElement('option');
+                        opt.value = g.group_id;
+                        opt.text = g.title || `مجموعة (${g.group_id})`;
+                        select.appendChild(opt);
+                    });
+
+                    // اختيار أول مجموعة تلقائياً
+                    selectedGroupId = groups[0].group_id;
+                    
+                    if (activeTab === 'protection') fetchGroupSettings();
+                    if (activeTab === 'triggers') fetchGroupTriggers();
+                }
+            } catch (error) {
+                console.error("خطأ أثناء جلب المجموعات:", error);
+            }
+        }
+
+        // عند تغيير المجموعة النشطة من القائمة المنسدلة
+        function onGroupChanged() {
+            const select = document.getElementById('group-select');
+            selectedGroupId = select.value;
+            
+            if (activeTab === 'protection') fetchGroupSettings();
+            if (activeTab === 'triggers') fetchGroupTriggers();
+        }
+
+        // جلب إعدادات الحماية للمجموعة المحددة
+        async function fetchGroupSettings() {
+            if (!selectedGroupId) return;
+            try {
+                const response = await fetch(`/api/group/${selectedGroupId}/settings`);
+                if (response.ok) {
+                    const settings = await response.json();
+                    
+                    document.getElementById('setting-anti-link').checked = settings.anti_link === 1;
+                    document.getElementById('setting-anti-spam').checked = settings.anti_spam === 1;
+                    document.getElementById('setting-gemini').checked = settings.gemini_enabled === 1;
+                    document.getElementById('setting-captcha').checked = settings.captcha_enabled === 1;
+                    document.getElementById('setting-welcome-enabled').checked = settings.welcome_enabled === 1;
+                    document.getElementById('setting-welcome-msg').value = settings.welcome_message || '';
+                }
+            } catch (error) {
+                console.error("خطأ أثناء جلب إعدادات المجموعة:", error);
+            }
+        }
+
+        // تعديل وحفظ إعداد فردي بمجرد تغييره (Toggle Switch)
+        async function toggleSetting(settingName) {
+            if (!selectedGroupId) return;
+            
+            let elementId = '';
+            if (settingName === 'anti_link') elementId = 'setting-anti-link';
+            if (settingName === 'anti_spam') elementId = 'setting-anti-spam';
+            if (settingName === 'gemini_enabled') elementId = 'setting-gemini';
+            if (settingName === 'captcha_enabled') elementId = 'setting-captcha';
+            if (settingName === 'welcome_enabled') elementId = 'setting-welcome-enabled';
+            
+            const isChecked = document.getElementById(elementId).checked;
+            const payload = {};
+            payload[settingName] = isChecked ? 1 : 0;
+            
+            try {
+                const response = await fetch(`/api/group/${selectedGroupId}/settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    showNotification("تم تحديث خيار الحماية بنجاح.");
+                } else {
+                    showNotification("فشل تحديث الخيار.", "error");
+                    // تصفير الواجهة للحالة القديمة
+                    document.getElementById(elementId).checked = !isChecked;
+                }
+            } catch (error) {
+                showNotification("حدث خطأ في الشبكة.", "error");
+                document.getElementById(elementId).checked = !isChecked;
+            }
+        }
+
+        // حفظ رسالة الترحيب المخصصة
+        async function saveWelcomeMessage() {
+            if (!selectedGroupId) return;
+            
+            const msg = document.getElementById('setting-welcome-msg').value;
+            const payload = { "welcome_message": msg };
+            
+            try {
+                const response = await fetch(`/api/group/${selectedGroupId}/settings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    showNotification("تم حفظ رسالة الترحيب بنجاح.");
+                } else {
+                    showNotification("فشل الحفظ.", "error");
+                }
+            } catch (error) {
+                showNotification("حدث خطأ في الشبكة.", "error");
+            }
+        }
+
+        // جلب الردود التلقائية المخصصة
+        async function fetchGroupTriggers() {
+            if (!selectedGroupId) return;
+            try {
+                const response = await fetch(`/api/group/${selectedGroupId}/triggers`);
+                if (response.ok) {
+                    const triggers = await response.json();
+                    const tableBody = document.getElementById('triggers-table-body');
+                    tableBody.innerHTML = '';
+                    
+                    if (triggers.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">لا توجد ردود تلقائية مسجلة لهذه المجموعة حالياً.</td></tr>';
+                        return;
+                    }
+                    
+                    triggers.forEach(t => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td style="font-weight: 700; color: var(--accent-cyan);">${t.keyword}</td>
+                            <td>${t.response}</td>
+                            <td style="text-align: center;">
+                                <button class="btn-icon btn-icon-danger" onclick="deleteCustomTrigger('${t.keyword}')"><i class="fa-solid fa-trash"></i></button>
+                            </td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error("خطأ أثناء جلب الردود التلقائية:", error);
+            }
+        }
+
+        // إضافة رد تلقائي جديد
+        async function addCustomTrigger() {
+            if (!selectedGroupId) return;
+            
+            const keywordInput = document.getElementById('new-trigger-key');
+            const responseInput = document.getElementById('new-trigger-val');
+            
+            const keyword = keywordInput.value.trim();
+            const response = responseInput.value.trim();
+            
+            if (!keyword || !response) {
+                showNotification("يرجى ملء الكلمة والرد للتمكن من الإضافة.", "error");
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/group/${selectedGroupId}/trigger`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyword, response })
+                });
+                
+                if (res.ok) {
+                    showNotification("تمت إضافة الرد التلقائي بنجاح.");
+                    keywordInput.value = '';
+                    responseInput.value = '';
+                    fetchGroupTriggers();
+                } else {
+                    showNotification("فشل إضافة الرد.", "error");
+                }
+            } catch (error) {
+                showNotification("حدث خطأ في الشبكة.", "error");
+            }
+        }
+
+        // حذف رد تلقائي مخصص
+        async function deleteCustomTrigger(keyword) {
+            if (!selectedGroupId || !confirm(`هل أنت متأكد من رغبتك في حذف الرد التلقائي للكلمة "${keyword}"؟`)) return;
+            
+            try {
+                const res = await fetch(`/api/group/${selectedGroupId}/trigger/${encodeURIComponent(keyword)}`, {
+                    method: 'DELETE'
+                });
+                
+                if (res.ok) {
+                    showNotification("تم حذف الرد التلقائي.");
+                    fetchGroupTriggers();
+                } else {
+                    showNotification("فشل الحذف.", "error");
+                }
+            } catch (error) {
+                showNotification("حدث خطأ في الشبكة.", "error");
+            }
+        }
+
+        // جلب سجل الرسائل الأخيرة للرقابة
+        async function fetchMessageLogs() {
+            try {
+                const response = await fetch('/api/logs/messages?limit=50');
+                if (response.ok) {
+                    const logs = await response.json();
+                    const tableBody = document.getElementById('message-logs-table-body');
+                    tableBody.innerHTML = '';
+                    
+                    if (logs.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">لا توجد رسائل مسجلة حالياً.</td></tr>';
+                        return;
+                    }
+                    
+                    logs.forEach(l => {
+                        const tr = document.createElement('tr');
+                        const date = new Date(l.timestamp * 1000).toLocaleTimeString('ar-SA');
+                        const userDisplayName = l.username ? `@${l.username}` : l.full_name;
+                        tr.innerHTML = `
+                            <td style="font-weight: 600; color: var(--accent-purple);">${userDisplayName}</td>
+                            <td>${l.message_text}</td>
+                            <td style="color: var(--text-secondary); font-size: 12px;">${date}</td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error("فشل جلب سجل الرسائل:", error);
+            }
+        }
+
+        // جلب قائمة التحذيرات والأعضاء المحذرين
+        async function fetchWarnings() {
+            try {
+                const response = await fetch('/api/warnings');
+                if (response.ok) {
+                    const warns = await response.json();
+                    const tableBody = document.getElementById('warnings-table-body');
+                    tableBody.innerHTML = '';
+                    
+                    if (warns.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary);">لا يوجد أعضاء حاصلين على تحذيرات حالياً في قاعدة البيانات.</td></tr>';
+                        return;
+                    }
+                    
+                    warns.forEach(w => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${w.user_id}</td>
+                            <td style="color: var(--text-secondary); font-size: 12px;">${w.group_id}</td>
+                            <td style="text-align: center;"><span class="badge badge-warning">${w.warn_count} / 3</span></td>
+                            <td style="text-align: center;">
+                                <button class="btn btn-danger" style="padding: 5px 10px; font-size: 11px;" onclick="resetUserWarning(${w.group_id}, ${w.user_id})"><i class="fa-solid fa-rotate-left"></i> تصفير</button>
+                            </td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error("فشل جلب قائمة التحذيرات:", error);
+            }
+        }
+
+        // تصفير تحذيرات عضو
+        async function resetUserWarning(groupId, userId) {
+            if (!confirm(`هل أنت متأكد من رغبتك في تصفير تحذيرات هذا العضو؟`)) return;
+            try {
+                const res = await fetch('/api/warning/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ "group_id": groupId, "user_id": userId })
+                });
+                if (res.ok) {
+                    showNotification("تم تصفير تحذيرات العضو بنجاح.");
+                    fetchWarnings();
+                } else {
+                    showNotification("فشل تصفير التحذيرات.", "error");
+                }
+            } catch (error) {
+                showNotification("حدث خطأ في الشبكة.", "error");
+            }
+        }
+    </script>
+</body>
+</html>
