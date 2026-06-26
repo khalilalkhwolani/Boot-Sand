@@ -131,28 +131,6 @@ SPAM_WORDS: [اكتب الكلمات أو العبارات الترويجية ا
 # ---- دالة التلخيص (/summarize) ----
 async def get_gemini_summary(messages_list: list) -> str:
     """إرسال الرسائل إلى Gemini للحصول على تلخيص ذكي ومنظم"""
-    if not GEMINI_API_KEY:
-        return "لم يتم إعداد مفتاح Google Gemini API في ملف .env"
-
-    formatted_messages = []
-    for msg in messages_list:
-        name = msg.get("full_name", "عضو")
-        username = f" (@{msg.get('username')})" if msg.get("username") else ""
-        text = msg.get("message_text", "")
-        formatted_messages.append(f"- {name}{username}: {text}")
-
-    conversation_history = "\n".join(formatted_messages)
-
-    prompt = (
-        "أنت مساعد ذكي متخصص في إدارة وتلخيص محادثات مجموعات التلجرام.\n"
-        "إليك قائمة بالرسائل الأخيرة في المجموعة مرتبة من الأقدم للأحدث.\n"
-        "قدم تلخيصاً شاملاً ومنظماً باللغة العربية على شكل نقاط واضحة مع رموز تعبيرية.\n\n"
-        f"سجل الرسائل:\n{conversation_history}\n\n"
-        "التلخيص الذكي:"
-    )
-
-async def get_gemini_summary(messages_list: list) -> str:
-    """إرسال الرسائل إلى Gemini للحصول على تلخيص ذكي ومنظم"""
     if not config.GEMINI_API_KEYS:
         return "لم يتم إعداد مفتاح Google Gemini API في ملف .env"
 

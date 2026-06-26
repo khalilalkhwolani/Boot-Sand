@@ -8,9 +8,11 @@ import mimetypes
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
 
-from fastapi import FastAPI, HTTPException, Body, Path, Query
+from fastapi import FastAPI, HTTPException, Body, Path, Query, Depends, status
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+import secrets
 import database
 import core.bot_runner as bot_runner
 import config
@@ -22,9 +24,32 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="AlsManagerBot Platform Admin Dashboard")
+# إعداد الحماية البسيطة للوحة التحكم عند تحديد كلمة مرور في المتغيرات البيئية
+DASHBOARD_USERNAME = os.getenv("DASHBOARD_USERNAME", "admin")
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")
 
-# تفعيل CORS لمواجهة أي مشاكل في استدعاء الـ APIs
+security = HTTPBasic()
+
+def authenticate_dashboard(credentials: HTTPBasicCredentials = Depends(security)):
+    if not DASHBOARD_PASSWORD:
+        return True
+    correct_username = secrets.compare_digest(credentials.username, DASHBOARD_USERNAME)
+    correct_password = secrets.compare_digest(credentials.password, DASHBOARD_PASSWORD)
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="اسم المستخدم أو كلمة المرور غير صحيحة.",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return True
+
+# تفعيل لوحة الإدارة مع التحقق من الهوية كشرط أساسي عند تحديد كلمة مرور
+app = FastAPI(
+    title="AlsManagerBot Platform Admin Dashboard",
+    dependencies=[Depends(authenticate_dashboard)] if DASHBOARD_PASSWORD else []
+)
+
+# تفعيل CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

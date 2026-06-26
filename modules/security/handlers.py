@@ -19,6 +19,14 @@ router = Router()
 # تتبع زمن وصول الرسائل لمنع الإغراق
 flood_tracker = {}
 
+_bot_info_cache = None
+
+async def get_bot_info(bot: Bot):
+    global _bot_info_cache
+    if _bot_info_cache is None:
+        _bot_info_cache = await bot.get_me()
+    return _bot_info_cache
+
 def is_time_in_range(start_str, end_str):
     try:
         now = datetime.now().time()
@@ -246,6 +254,122 @@ async def show_group_settings(message: Message):
         parse_mode="Markdown"
     )
 
+# ---- إدارة الكلمات الإعلانية المشبوهة ونظام التعلم ----
+@router.message(Command("spamwords"), IsAdminFilter(), F.chat.type.in_({"group", "supergroup"}))
+async def list_spam_words(message: Message):
+    try:
+        keywords = await database.get_all_spam_keywords_details()
+        if not keywords:
+            await message.reply("📋 لا توجد كلمات مشبوهة مضافة في قاعدة البيانات حالياً.")
+            return
+        
+        words_list = []
+        for kw in sorted(keywords, key=lambda x: (x.get('is_approved', 0), x.get('weight', 0)), reverse=True):
+            word = kw.get('keyword', '')
+            is_approved = kw.get('is_approved', 0)
+            weight = kw.get('weight', 1)
+            
+            if is_approved == 1 or weight >= 3:
+                status_icon = "✅"
+                approved_label = "معتمدة"
+            else:
+                status_icon = "⏳"
+                approved_label = f"تحت التجميع {weight}/3"
+                
+            words_list.append(f"{status_icon} **{word}** ({approved_label})")
+            
+        full_list = "\n".join(words_list)
+        await message.reply(
+            f"📋 **قائمة الكلمات المشبوهة وحالة التعلم**:\n\n"
+            f"{full_list}\n\n"
+            f"💡 الكلمات المسبوقة بـ (⏳) تحتاج تكرارها 3 مرات ليتم فلترتها تلقائياً، أو يمكنك اعتمادها يدوياً باستخدام أمر:\n`/approvespam [الكلمة]`",
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        logger.error(f"Error listing spam words: {e}")
+        await message.reply("❌ حدث خطأ أثناء جلب قائمة الكلمات المشبوهة.")
+
+@router.message(Command("removespam"), IsAdminFilter(), F.chat.type.in_({"group", "supergroup"}))
+async def remove_spam_word(message: Message):
+    args = message.text.split()
+    if len(args) < 2:
+        await message.reply("⚠️ يرجى كتابة الكلمة التي تريد حذفها بعد الأمر. مثال:\n`/removespam كلمة`", parse_mode="Markdown")
+        return
+    
+    word_to_remove = args[1].strip().lower()
+    try:
+        removed = await database.remove_spam_keyword(word_to_remove)
+        if removed:
+            await message.reply(f"✅ تم حذف الكلمة « **{word_to_remove}** » بنجاح من قاعدة البيانات ولم تعد مشبوهة.", parse_mode="Markdown")
+        else:
+            await message.reply(f"❌ الكلمة « **{word_to_remove}** » غير موجودة بالفعل في قائمة الكلمات المشبوهة.", parse_mode="Markdown")
+    except Exception as e:
+        logger.error(f"Error removing spam word: {e}")
+        await message.reply("❌ حدث خطأ أثناء محاولة حذف الكلمة.")
+
+@router.message(Command("addspam"), IsAdminFilter(), F.chat.type.in_({"group", "supergroup"}))
+async def add_spam_word(message: Message):
+    args = message.text.split()
+    if len(args) < 2:
+        await message.reply("⚠️ يرجى كتابة الكلمة التي تريد إضافتها بعد الأمر. مثال:\n`/addspam كلمة`", parse_mode="Markdown")
+        return
+    
+    word_to_add = args[1].strip().lower()
+    try:
+        added = await database.add_spam_keyword(word_to_add, added_by=f"admin_manual_{message.from_user.id}")
+        if added:
+            await message.reply(f"✅ تم إضافة الكلمة « **{word_to_add}** » بنجاح واعتمادها للفلترة المباشرة.", parse_mode="Markdown")
+        else:
+            await message.reply(f"❌ فشل إضافة الكلمة أو أنها مضافة بالفعل.", parse_mode="Markdown")
+    except Exception as e:
+        logger.error(f"Error adding spam word: {e}")
+        await message.reply("❌ حدث خطأ أثناء إضافة الكلمة.")
+
+@router.message(Command("approvespam"), IsAdminFilter(), F.chat.type.in_({"group", "supergroup"}))
+async def approve_spam_word(message: Message):
+    args = message.text.split()
+    if len(args) < 2:
+        await message.reply("⚠️ يرجى كتابة الكلمة التي تريد اعتمادها بعد الأمر. مثال:\n`/approvespam كلمة`", parse_mode="Markdown")
+        return
+    
+    word_to_approve = args[1].strip().lower()
+    try:
+        approved = await database.approve_spam_keyword(word_to_approve)
+        if approved:
+            await message.reply(f"✅ تم اعتماد الكلمة « **{word_to_approve}** » بنجاح للفلترة المباشرة وترقيتها.", parse_mode="Markdown")
+        else:
+            await message.reply(f"❌ الكلمة غير موجودة في قاعدة البيانات لإعتمادها.", parse_mode="Markdown")
+    except Exception as e:
+        logger.error(f"Error approving spam word: {e}")
+        await message.reply("❌ حدث خطأ أثناء اعتماد الكلمة.")
+
+@router.message(Command("learnstats"), IsAdminFilter(), F.chat.type.in_({"group", "supergroup"}))
+async def show_learn_stats(message: Message):
+    try:
+        stats = await database.get_learn_stats()
+        await message.reply(
+            f"🧠 **إحصائيات نظام التعلم وحماية المجموعة**:\n\n"
+            f"📊 **مجموع الكلمات المخزنة**: {stats['total']}\n"
+            f"✅ **الكلمات النشطة/المعتمدة**: {stats['approved']}\n"
+            f"⏳ **الكلمات قيد الجمع والتجميع**: {stats['pending']}",
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        logger.error(f"Error showing learn stats: {e}")
+        await message.reply("❌ حدث خطأ أثناء جلب إحصائيات التعلم.")
+
+@router.message(Command("resetlearn"), IsAdminFilter(), F.chat.type.in_({"group", "supergroup"}))
+async def reset_learned_spam_words(message: Message):
+    try:
+        success = await database.reset_learned_keywords()
+        if success:
+            await message.reply("🧹 تم تصفير الكلمات المتعلمة تلقائياً (التي لم تعتمد ولم يزد وزنها عن 3) وحذفها بنجاح.")
+        else:
+            await message.reply("❌ فشل تصفير الكلمات المتعلمة.")
+    except Exception as e:
+        logger.error(f"Error resetting learned keywords: {e}")
+        await message.reply("❌ حدث خطأ أثناء محاولة تصفير الكلمات.")
+
 
 @router.callback_query(F.data.startswith("settings_page_"))
 async def process_settings_page(callback: CallbackQuery, bot: Bot):
@@ -353,7 +477,7 @@ async def securty_menus_callback(callback: CallbackQuery, bot: Bot):
             await callback.answer("خطأ في التحقق من الصلاحيات.", show_alert=True)
             return
             
-    bot_user = await bot.get_me()
+    bot_user = await get_bot_info(bot)
     
     if data in {"channel", "channel2"}:
         await callback.message.edit_text(
@@ -683,26 +807,7 @@ async def admin_manual_moderation_reply(message: Message, bot: Bot):
     target_text = target_text.strip()
     
     if target_text:
-        # 1) استخلاص الكلمات محلياً (تجنب حروف الجر الشائعة والكلمات القصيرة)
-        arabic_stop_words = {
-            "في", "من", "على", "إلى", "الى", "عن", "مع", "هذا", "هذه", "الذي", "التي", "هنا",
-            "أو", "او", "أن", "ان", "لا", "ما", "لم", "لن", "ثم", "بل", "لكن", "يا", "و", "بـ", "لـ"
-        }
-        
-        words = re.findall(r'\b\w{3,15}\b', target_text.lower())
-        new_keywords = []
-        for w in words:
-            # التحقق من أن الكلمة ليست من حروف الجر وليست رقماً مجرداً
-            if w not in arabic_stop_words and not w.isdigit():
-                try:
-                    await database.add_spam_keyword(w, added_by=f'admin_manual_{message.from_user.id}')
-                    new_keywords.append(w)
-                except Exception:
-                    pass
-        
-        logger.info(f"[DEBUG] Auto-learned keywords from manual block: {new_keywords}")
-
-        # 2) إذا كان Gemini مفعلاً، نقوم بالاستعانة به في الخلفية لتنظيف واستخلاص العبارات المترابطة بدقة
+        # نقوم بالاستعانة بـ Gemini AI لتنظيف واستخلاص العبارات والكلمات الإعلانية بدقة (لمنع التلوث البرمجي بقاعدة البيانات)
         settings = await database.get_group_settings(message.chat.id)
         if settings.get("gemini_enabled", 1) == 1:
             async def learn_in_background():
@@ -711,7 +816,7 @@ async def admin_manual_moderation_reply(message: Message, bot: Bot):
                     res = await gemini_check_message(target_text)
                     spam_words = res.get("spam_words", [])
                     for sw in spam_words:
-                        await database.add_spam_keyword(sw, added_by='gemini_auto_manual')
+                        await database.add_spam_keyword(sw, added_by=f'gemini_auto_manual_{message.from_user.id}')
                     logger.info(f"[DEBUG] Background Gemini extraction learned: {spam_words}")
                 except Exception as ex:
                     logger.error(f"Background Gemini learning failed: {ex}")
@@ -755,7 +860,7 @@ async def monitor_messages(message: Message, bot: Bot):
         return
 
     # تسجيل المجموعة والربط بالبوت تلقائياً عند استلام أي رسالة
-    me = await bot.get_me()
+    me = await get_bot_info(bot)
     invite_link = None
     if message.chat.username:
         invite_link = f"https://t.me/{message.chat.username}"
@@ -923,7 +1028,8 @@ async def monitor_messages(message: Message, bot: Bot):
             target_user = message.reply_to_message.from_user
             
             if text == "طرد":
-                if target_user.id == (await bot.get_me()).id:
+                bot_info = await get_bot_info(bot)
+                if target_user.id == bot_info.id:
                     await message.reply('لا يمكنك ➖❕ طردي هكذا ‼️')
                 else:
                     try:
@@ -1027,6 +1133,12 @@ async def monitor_messages(message: Message, bot: Bot):
         user_id = message.from_user.id
         now_ts = time.time()
         
+        # تنظيف الذاكرة دورياً للحد من تراكم المفاتيح (Memory Leak Prevention)
+        if len(flood_tracker) > 100:
+            inactive_keys = [k for k, v in flood_tracker.items() if not v or now_ts - v[-1] > 10]
+            for k in inactive_keys:
+                del flood_tracker[k]
+                
         user_key = (chat_id, user_id)
         if user_key not in flood_tracker:
             flood_tracker[user_key] = []
@@ -1117,7 +1229,11 @@ async def monitor_messages(message: Message, bot: Bot):
     if settings.get("censorship_enabled", 0) == 1 and text_to_check:
         banned_words_str = settings.get("banned_words", "")
         if banned_words_str:
-            banned_words = [w.strip().lower() for w in banned_words_str.split(",") if w.strip()]
+            banned_words = []
+            for part in re.split(r'[,\n\r]+', banned_words_str):
+                w = part.strip().lower()
+                if w:
+                    banned_words.append(w)
             matched_banned = [w for w in banned_words if w in text_to_check.lower()]
             if matched_banned:
                 logger.info(f"[DEBUG] Censorship match: {matched_banned}. Deleting...")
@@ -1185,7 +1301,7 @@ async def monitor_messages(message: Message, bot: Bot):
         keyword_matches = len(matched_words)
 
         # 1) كشف فوري محلي للإعلانات والأرقام الترويحية الواضحة (منعاً لتسريب أرقام التواصل الخارجي أو تكرار الإعلانات)
-        is_obvious_spam = (has_phone and keyword_matches >= 1) or (keyword_matches >= 3) or has_phone
+        is_obvious_spam = (has_phone and keyword_matches >= 1) or (keyword_matches >= 3)
 
         if is_obvious_spam:
             logger.info(f"[DEBUG] Obvious ad/phone detected locally ({keyword_matches} keywords matched). Deleting...")

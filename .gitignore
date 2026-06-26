@@ -1,2 +1,12 @@
-
 .env
+bot_data.db
+test_bot_data.db
+*.db
+*.log
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+frontend/node_modules/
+frontend/dist/
+.vscode/

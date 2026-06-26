@@ -5,9 +5,12 @@ import time
 
 DB_PATH = "bot_data.db"
 
+def db_connect():
+    return aiosqlite.connect(DB_PATH, timeout=30.0)
+
 async def init_db():
     """تهيئة قاعدة البيانات وإنشاء الجداول إذا لم تكن موجودة"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         # 1. جدول البوتات لدعم البوتات المتعددة
         await db.execute("""
             CREATE TABLE IF NOT EXISTS bots (
@@ -78,7 +81,10 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS spam_keywords (
                 keyword TEXT PRIMARY KEY,
                 added_by TEXT DEFAULT 'system',
-                created_at INTEGER
+                created_at INTEGER,
+                weight INTEGER DEFAULT 1,
+                category TEXT DEFAULT 'general',
+                is_approved INTEGER DEFAULT 0
             )
         """)
 
@@ -109,6 +115,34 @@ async def init_db():
         except Exception:
             pass
 
+        # ترقية جدول spam_keywords لإضافة الأعمدة الجديدة
+        try:
+            await db.execute("ALTER TABLE spam_keywords ADD COLUMN weight INTEGER DEFAULT 1")
+        except Exception:
+            pass
+        try:
+            await db.execute("ALTER TABLE spam_keywords ADD COLUMN category TEXT DEFAULT 'general'")
+        except Exception:
+            pass
+        try:
+            await db.execute("ALTER TABLE spam_keywords ADD COLUMN is_approved INTEGER DEFAULT 0")
+        except Exception:
+            pass
+
+        # إنشاء فهارس لتحسين الأداء وتسريع البحث (Database Indexes)
+        try:
+            await db.execute("CREATE INDEX IF NOT EXISTS idx_message_logs_group ON message_logs (group_id, timestamp)")
+        except Exception:
+            pass
+        try:
+            await db.execute("CREATE INDEX IF NOT EXISTS idx_warnings_user ON warnings (group_id, user_id)")
+        except Exception:
+            pass
+        try:
+            await db.execute("CREATE INDEX IF NOT EXISTS idx_spam_keywords_approved ON spam_keywords (is_approved, weight)")
+        except Exception:
+            pass
+
         await db.commit()
 
     # الهجرة من الهيكل القديم للمجموعات إلى هيكل الموديولات الجديد (security)
@@ -118,7 +152,7 @@ async def init_db():
 
 async def migrate_old_settings():
     try:
-        async with aiosqlite.connect(DB_PATH) as db:
+        async with db_connect() as db:
             # التحقق هل جدول الموديولات فارغ
             async with db.execute("SELECT COUNT(*) FROM group_modules") as cursor:
                 count = (await cursor.fetchone())[0]
@@ -153,7 +187,7 @@ async def migrate_old_settings():
 # --- وظائف إدارة إعدادات المجموعات (مع الحفاظ على التوافق الخلفي) ---
 
 async def add_group(group_id: int, bot_id: int = None, title: str = None, invite_link: str = None):
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         # Check if group already exists
         async with db.execute("SELECT group_id FROM groups WHERE group_id = ?", (group_id,)) as cursor:
             row = await cursor.fetchone()
@@ -208,7 +242,7 @@ async def add_group(group_id: int, bot_id: int = None, title: str = None, invite
 
 async def get_group_settings(group_id: int) -> dict:
     await add_group(group_id)
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         async with db.execute(
             "SELECT settings_json FROM group_modules WHERE group_id = ? AND module_name = 'security'",
             (group_id,)
@@ -248,7 +282,7 @@ async def update_group_setting(group_id: int, setting_name: str, value):
     await add_group(group_id)
     settings = await get_group_settings(group_id)
     settings[setting_name] = value
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         await db.execute(
             "UPDATE group_modules SET settings_json = ? WHERE group_id = ? AND module_name = 'security'",
             (json.dumps(settings), group_id)
@@ -259,7 +293,7 @@ async def update_group_setting(group_id: int, setting_name: str, value):
 
 async def add_bot(bot_id: int, token: str, name: str = None, owner_id: int = None):
     now = int(time.time())
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         await db.execute(
             "INSERT OR REPLACE INTO bots (bot_id, token, name, owner_id, status, created_at) VALUES (?, ?, ?, ?, 'stopped', ?)",
             (bot_id, token, name, owner_id, now)
@@ -267,40 +301,40 @@ async def add_bot(bot_id: int, token: str, name: str = None, owner_id: int = Non
         await db.commit()
 
 async def get_bots():
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         db.row_factory = aiosqlite.Row
         async with db.execute("SELECT * FROM bots") as cursor:
             rows = await cursor.fetchall()
             return [dict(r) for r in rows]
 
 async def get_bot(bot_id: int):
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         db.row_factory = aiosqlite.Row
         async with db.execute("SELECT * FROM bots WHERE bot_id = ?", (bot_id,)) as cursor:
             row = await cursor.fetchone()
             return dict(row) if row else None
 
 async def update_bot_status(bot_id: int, status: str):
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         await db.execute("UPDATE bots SET status = ? WHERE bot_id = ?", (status, bot_id))
         await db.commit()
 
 async def remove_bot(bot_id: int):
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         await db.execute("DELETE FROM bots WHERE bot_id = ?", (bot_id,))
         await db.commit()
 
 # --- وظائف إدارة المجموعات للوحة التحكم ---
 
 async def get_all_groups():
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         db.row_factory = aiosqlite.Row
         async with db.execute("SELECT * FROM groups") as cursor:
             rows = await cursor.fetchall()
             return [dict(r) for r in rows]
 
 async def remove_group(group_id: int):
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         await db.execute("DELETE FROM groups WHERE group_id = ?", (group_id,))
         await db.execute("DELETE FROM group_modules WHERE group_id = ?", (group_id,))
         await db.commit()
@@ -308,7 +342,7 @@ async def remove_group(group_id: int):
 # --- وظائف إدارة الموديولات العامة ---
 
 async def get_group_module_settings(group_id: int, module_name: str) -> dict:
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         async with db.execute(
             "SELECT settings_json FROM group_modules WHERE group_id = ? AND module_name = ?",
             (group_id, module_name)
@@ -322,7 +356,7 @@ async def get_group_module_settings(group_id: int, module_name: str) -> dict:
             return {}
 
 async def update_group_module_settings(group_id: int, module_name: str, settings: dict):
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         await db.execute(
             "INSERT OR REPLACE INTO group_modules (group_id, module_name, settings_json) VALUES (?, ?, ?)",
             (group_id, module_name, json.dumps(settings))
@@ -332,7 +366,7 @@ async def update_group_module_settings(group_id: int, module_name: str, settings
 # --- وظائف إدارة التحذيرات (Warnings) ---
 
 async def get_warnings(group_id: int, user_id: int) -> int:
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         async with db.execute(
             "SELECT warn_count FROM warnings WHERE group_id = ? AND user_id = ?",
             (group_id, user_id)
@@ -343,7 +377,7 @@ async def get_warnings(group_id: int, user_id: int) -> int:
 async def add_warning(group_id: int, user_id: int) -> int:
     current = await get_warnings(group_id, user_id)
     new_warn = current + 1
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         await db.execute(
             "INSERT OR REPLACE INTO warnings (group_id, user_id, warn_count) VALUES (?, ?, ?)",
             (group_id, user_id, new_warn)
@@ -352,7 +386,7 @@ async def add_warning(group_id: int, user_id: int) -> int:
     return new_warn
 
 async def reset_warnings(group_id: int, user_id: int):
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         await db.execute(
             "DELETE FROM warnings WHERE group_id = ? AND user_id = ?",
             (group_id, user_id)
@@ -360,7 +394,7 @@ async def reset_warnings(group_id: int, user_id: int):
         await db.commit()
 
 async def get_all_warnings():
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         db.row_factory = aiosqlite.Row
         async with db.execute("SELECT * FROM warnings WHERE warn_count > 0") as cursor:
             rows = await cursor.fetchall()
@@ -370,7 +404,7 @@ async def get_all_warnings():
 
 async def log_message(group_id: int, user_id: int, username: str, full_name: str, message_text: str):
     now = int(time.time())
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         await db.execute(
             "INSERT INTO message_logs (group_id, user_id, username, full_name, message_text, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
             (group_id, user_id, username, full_name, message_text, now)
@@ -391,7 +425,7 @@ async def log_message(group_id: int, user_id: int, username: str, full_name: str
         await db.commit()
 
 async def get_recent_messages(group_id: int, limit: int = 75) -> list:
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
             """
@@ -409,7 +443,7 @@ async def get_recent_messages(group_id: int, limit: int = 75) -> list:
             return [dict(r) for r in rows]
 
 async def get_global_recent_messages(limit: int = 100) -> list:
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
             "SELECT * FROM message_logs ORDER BY timestamp DESC LIMIT ?",
@@ -421,7 +455,7 @@ async def get_global_recent_messages(limit: int = 100) -> list:
 # --- وظائف الردود التلقائية (Triggers) ---
 
 async def add_trigger(group_id: int, keyword: str, response: str):
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         await db.execute(
             "INSERT OR REPLACE INTO triggers (group_id, keyword, response) VALUES (?, ?, ?)",
             (group_id, keyword.lower(), response)
@@ -429,7 +463,7 @@ async def add_trigger(group_id: int, keyword: str, response: str):
         await db.commit()
 
 async def remove_trigger(group_id: int, keyword: str) -> bool:
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         cursor = await db.execute(
             "DELETE FROM triggers WHERE group_id = ? AND keyword = ?",
             (group_id, keyword.lower())
@@ -438,7 +472,7 @@ async def remove_trigger(group_id: int, keyword: str) -> bool:
         return cursor.rowcount > 0
 
 async def get_trigger(group_id: int, keyword: str) -> str:
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         async with db.execute(
             "SELECT response FROM triggers WHERE group_id = ? AND keyword = ?",
             (group_id, keyword.lower())
@@ -447,7 +481,7 @@ async def get_trigger(group_id: int, keyword: str) -> str:
             return row[0] if row else None
 
 async def get_triggers(group_id: int) -> dict:
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         async with db.execute(
             "SELECT keyword, response FROM triggers WHERE group_id = ?",
             (group_id,)
@@ -456,7 +490,7 @@ async def get_triggers(group_id: int) -> dict:
             return {row[0]: row[1] for row in rows}
 
 async def get_all_triggers_list():
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         db.row_factory = aiosqlite.Row
         async with db.execute("SELECT * FROM triggers") as cursor:
             rows = await cursor.fetchall()
@@ -467,7 +501,7 @@ async def get_all_triggers_list():
 
 async def init_default_spam_keywords():
     """تهيئة الكلمات المشبوهة الافتراضية إذا كان الجدول فارغاً"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         async with db.execute("SELECT COUNT(*) FROM spam_keywords") as cursor:
             count = (await cursor.fetchone())[0]
         
@@ -499,43 +533,111 @@ async def init_default_spam_keywords():
                 )
             await db.commit()
 
-async def add_spam_keyword(keyword: str, added_by: str = 'system') -> bool:
-    """إضافة كلمة مشبوهة جديدة لقاعدة البيانات"""
+async def add_spam_keyword(keyword: str, added_by: str = 'system', category: str = 'general') -> bool:
+    """إضافة كلمة مشبوهة جديدة أو زيادة وزنها وتعديل حالتها إذا كانت موجودة"""
     kw_clean = keyword.strip().lower()
     if not kw_clean:
         return False
     now = int(time.time())
-    async with aiosqlite.connect(DB_PATH) as db:
+    is_admin = added_by.startswith('admin') or added_by.startswith('gemini_auto_manual')
+    
+    async with db_connect() as db:
         try:
-            await db.execute(
-                "INSERT OR REPLACE INTO spam_keywords (keyword, added_by, created_at) VALUES (?, ?, ?)",
-                (kw_clean, added_by, now)
-            )
+            # التحقق هل الكلمة موجودة مسبقاً
+            async with db.execute("SELECT weight, is_approved FROM spam_keywords WHERE keyword = ?", (kw_clean,)) as cursor:
+                row = await cursor.fetchone()
+                
+            if row:
+                current_weight, current_approved = row[0], row[1]
+                # لو أدمن يثبت كـ معتمدة بوزن عالي، لو تلقائي نزيد الوزن بمقدار 1
+                new_approved = 1 if (is_admin or current_approved == 1) else 0
+                new_weight = 10 if is_admin else (current_weight + 1)
+                if new_weight >= 3:
+                    new_approved = 1
+                await db.execute(
+                    "UPDATE spam_keywords SET weight = ?, is_approved = ?, added_by = ?, created_at = ? WHERE keyword = ?",
+                    (new_weight, new_approved, added_by, now, kw_clean)
+                )
+            else:
+                initial_approved = 1 if is_admin else 0
+                initial_weight = 10 if is_admin else 1
+                await db.execute(
+                    "INSERT INTO spam_keywords (keyword, added_by, created_at, weight, category, is_approved) VALUES (?, ?, ?, ?, ?, ?)",
+                    (kw_clean, added_by, now, initial_weight, category, initial_approved)
+                )
             await db.commit()
             return True
         except Exception:
             return False
 
 async def get_all_spam_keywords() -> list:
-    """جلب جميع الكلمات المشبوهة المخزنة"""
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute("SELECT keyword FROM spam_keywords") as cursor:
+    """جلب الكلمات المشبوهة النشطة (المعتمدة أو التي وزنها >= 3)"""
+    async with db_connect() as db:
+        async with db.execute("SELECT keyword FROM spam_keywords WHERE is_approved = 1 OR weight >= 3") as cursor:
             rows = await cursor.fetchall()
             return [r[0] for r in rows]
+
+async def get_all_spam_keywords_details() -> list:
+    """جلب جميع الكلمات المشبوهة وتفاصيلها للأدمن"""
+    async with db_connect() as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM spam_keywords ORDER BY is_approved DESC, weight DESC") as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
+async def approve_spam_keyword(keyword: str) -> bool:
+    """اعتماد الكلمة المشبوهة يدوياً من الأدمن وترقيتها"""
+    kw_clean = keyword.strip().lower()
+    async with db_connect() as db:
+        try:
+            cursor = await db.execute(
+                "UPDATE spam_keywords SET is_approved = 1, weight = 10 WHERE keyword = ?",
+                (kw_clean,)
+            )
+            await db.commit()
+            return cursor.rowcount > 0
+        except Exception:
+            return False
 
 async def remove_spam_keyword(keyword: str) -> bool:
     """حذف كلمة مشبوهة من قاعدة البيانات"""
     kw_clean = keyword.strip().lower()
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         cursor = await db.execute("DELETE FROM spam_keywords WHERE keyword = ?", (kw_clean,))
         await db.commit()
         return cursor.rowcount > 0
+
+async def get_learn_stats() -> dict:
+    """إحصائيات التعلم المشبوه"""
+    async with db_connect() as db:
+        try:
+            async with db.execute("SELECT COUNT(*) FROM spam_keywords") as c:
+                total = (await c.fetchone())[0]
+            async with db.execute("SELECT COUNT(*) FROM spam_keywords WHERE is_approved = 1 OR weight >= 3") as c:
+                approved = (await c.fetchone())[0]
+            return {
+                "total": total,
+                "approved": approved,
+                "pending": total - approved
+            }
+        except Exception:
+            return {"total": 0, "approved": 0, "pending": 0}
+
+async def reset_learned_keywords() -> bool:
+    """مسح الكلمات المتعلمة التي لم تعتمد ولم يزد وزنها عن 3"""
+    async with db_connect() as db:
+        try:
+            await db.execute("DELETE FROM spam_keywords WHERE is_approved = 0 AND weight < 3")
+            await db.commit()
+            return True
+        except Exception:
+            return False
 
 
 async def add_global_ban(user_id: int, reason: str = "") -> bool:
     """إضافة مستخدم للحظر العام"""
     now = int(time.time())
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         try:
             await db.execute(
                 "INSERT OR REPLACE INTO global_bans (user_id, reason, created_at) VALUES (?, ?, ?)",
@@ -549,7 +651,7 @@ async def add_global_ban(user_id: int, reason: str = "") -> bool:
 
 async def remove_global_ban(user_id: int) -> bool:
     """إلغاء الحظر العام عن مستخدم"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         try:
             cursor = await db.execute("DELETE FROM global_bans WHERE user_id = ?", (user_id,))
             await db.commit()
@@ -560,7 +662,7 @@ async def remove_global_ban(user_id: int) -> bool:
 
 async def is_globally_banned(user_id: int) -> bool:
     """التحقق هل المستخدم محظور عام"""
-    async with aiosqlite.connect(DB_PATH) as db:
+    async with db_connect() as db:
         try:
             async with db.execute("SELECT user_id FROM global_bans WHERE user_id = ?", (user_id,)) as cursor:
                 row = await cursor.fetchone()
