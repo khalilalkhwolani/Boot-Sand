@@ -511,6 +511,11 @@ async def callback_handler(callback: types.CallbackQuery):
     data = callback.data
     chat_id = callback.message.chat.id
 
+    if data not in {"channel", "channel2", "home"}:
+        if not await is_group_admin(chat_id, callback.from_user.id):
+            await callback.answer("عذراً، هذا الإجراء مخصص للمشرفين فقط! 🔒", show_alert=True)
+            return
+
     if data in {"channel", "channel2"}:
         await callback.message.edit_text(
             'تابعنا عبر الروابط التالية 📩',

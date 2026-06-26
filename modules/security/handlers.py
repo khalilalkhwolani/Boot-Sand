@@ -341,6 +341,18 @@ async def close_settings_callback(callback: CallbackQuery):
 @router.callback_query(F.data.in_({"channel", "channel2", "home", "help", "help_close", "help_open", "help_offc", "offc", "omar"}))
 async def securty_menus_callback(callback: CallbackQuery, bot: Bot):
     data = callback.data
+    chat_id = callback.message.chat.id
+    
+    if data in {"help", "help_close", "help_open", "help_offc", "offc", "omar"}:
+        try:
+            member = await bot.get_chat_member(chat_id, callback.from_user.id)
+            if member.status not in ("administrator", "creator"):
+                await callback.answer("عذراً، هذه القائمة مخصصة للمشرفين فقط! 🔒", show_alert=True)
+                return
+        except Exception:
+            await callback.answer("خطأ في التحقق من الصلاحيات.", show_alert=True)
+            return
+            
     bot_user = await bot.get_me()
     
     if data in {"channel", "channel2"}:
@@ -468,6 +480,15 @@ async def securty_locks_callback(callback: CallbackQuery, bot: Bot):
 async def securty_commands_callback(callback: CallbackQuery, bot: Bot):
     data = callback.data
     chat_id = callback.message.chat.id
+
+    try:
+        member = await bot.get_chat_member(chat_id, callback.from_user.id)
+        if member.status not in ("administrator", "creator"):
+            await callback.answer("عذراً، هذا الإجراء مخصص للمشرفين فقط! 🔒", show_alert=True)
+            return
+    except Exception:
+        await callback.answer("خطأ في التحقق من الصلاحيات.", show_alert=True)
+        return
 
     if data == "cmd_info":
         if callback.message.chat.type in ("group", "supergroup"):
