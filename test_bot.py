@@ -27,7 +27,7 @@ def header(msg): print(f"\n{BOLD}{CYAN}{'='*60}\n  {msg}\n{'='*60}{RESET}")
 # ================================================================
 def test_local_filter():
     header("1. Local Spam Filter (is_suspicious)")
-    from modules.security.handlers import is_suspicious
+    from modules.security.filters import is_suspicious
 
     cases = [
         ("Normal academic question",

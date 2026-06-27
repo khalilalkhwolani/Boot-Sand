@@ -34,7 +34,7 @@ async def start_private(message: Message, bot: Bot):
             reply_markup=get_admin_keyboard()
         )
     else:
-        from modules.security.handlers import build_main_keyboard
+        from modules.security.keyboards import build_main_keyboard
         bot_user = await bot.get_me()
         await message.answer(
             "اهلا بك عزيزي 🚹 في البوت الرسمي 🔶\nالخاص لحماية المجموعات 👥🔒\nيعمل باللغة العربية 📕 ويحتوي \nعلى جميع الاشياء التي تحتاجها 💎\nلعمل مجموعة امنة وجيدة ‼️",

@@ -213,6 +213,9 @@ async def summarize_chat(message: Message, bot: Bot):
 async def is_bot_mentioned_or_reply(message: Message, bot: Bot) -> bool:
     if not message.text:
         return False
+    # Ignore command messages
+    if message.text.strip().startswith("/"):
+        return False
     bot_info = await bot.get_me()
     is_mentioned = f"@{bot_info.username}" in message.text
     is_reply_to_bot = (
@@ -229,6 +232,11 @@ async def auto_ai_reply(message: Message, bot: Bot):
     if settings.get("gemini_enabled", 1) == 0:
         return
 
+    # If Gemini API keys are not configured, return silently
+    if not config.GEMINI_API_KEYS:
+        logger.warning("Gemini API keys not configured. Skipping auto_ai_reply.")
+        return
+
     bot_info = await bot.get_me()
     bot_username = bot_info.username
     clean_text = message.text.replace(f"@{bot_username}", "").strip()
@@ -240,6 +248,12 @@ async def auto_ai_reply(message: Message, bot: Bot):
     await bot.send_chat_action(chat_id=message.chat.id, action="typing")
     context = f"السائل يدعى {message.from_user.full_name} في مجموعة {message.chat.title}."
     reply_text = await ask_gemini(clean_text, context)
+    
+    # If the response is an error or key warning, do not reply publicly
+    if reply_text.startswith("⚠️") or "لم يتم إعداد" in reply_text:
+        logger.warning(f"Gemini error response in group chat: {reply_text}")
+        return
+        
     await message.reply(reply_text)
 
 
